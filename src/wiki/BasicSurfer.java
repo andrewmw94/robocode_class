@@ -22,9 +22,9 @@ public class BasicSurfer extends AdvancedRobot {
     public Point2D.Double _myLocation;     // our bot's location
     public Point2D.Double _enemyLocation;  // enemy bot's location
 
-    public ArrayList _enemyWaves;
-    public ArrayList _surfDirections;
-    public ArrayList _surfAbsBearings;
+    public ArrayList<EnemyWave> _enemyWaves;
+    public ArrayList<Integer> _surfDirections;
+    public ArrayList<Double> _surfAbsBearings;
 
     double our_last_velocity;
     Gun my_gun = new Gun();
@@ -43,9 +43,9 @@ public class BasicSurfer extends AdvancedRobot {
     public static double WALL_STICK = 160;
 
     public void run() {
-        _enemyWaves = new ArrayList();
-        _surfDirections = new ArrayList();
-        _surfAbsBearings = new ArrayList();
+        _enemyWaves = new ArrayList<EnemyWave>();
+        _surfDirections = new ArrayList<Integer>();
+        _surfAbsBearings = new ArrayList<Double>();
 
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
@@ -279,7 +279,7 @@ public class BasicSurfer extends AdvancedRobot {
             //Take the distance from the past entry and the current predicted guess factor
             //Then divide by the similarity to the past entry's situation.
             total_danger += pec.dist_squared/Math.abs(factor - pec.dataPoint.dataObject[0]);
-            System.out.println("Past hit at GF: "+pec.dataPoint.dataObject[0]);
+//            System.out.println("Movement: Past hit at GF: "+pec.dataPoint.dataObject[0]);
         }
 
         return total_danger;
@@ -397,6 +397,7 @@ public class BasicSurfer extends AdvancedRobot {
                 g.drawOval((int) (center.x - radius), (int) (center.y - radius), radius * 2, radius * 2);
             }
         }
+        my_gun.onPaint(g);
     }
 
 }
