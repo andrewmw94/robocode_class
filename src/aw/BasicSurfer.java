@@ -1,5 +1,6 @@
-package wiki;
+package aw;
 
+import java.awt.Color;
 import robocode.*;
 import robocode.util.Utils;
 import java.awt.geom.*;     // for Point2D's
@@ -17,7 +18,7 @@ public class BasicSurfer extends AdvancedRobot {
     public static final int NUM_DIMENSIONS_FOR_KDTREE = 3;
 
     //distance, velocity, acceleration
-    public Kd_tree my_kdtree = new Kd_tree(NUM_DIMENSIONS_FOR_KDTREE);
+    public static Kd_tree my_kdtree = new Kd_tree(NUM_DIMENSIONS_FOR_KDTREE);
 
     public Point2D.Double _myLocation;     // our bot's location
     public Point2D.Double _enemyLocation;  // enemy bot's location
@@ -49,6 +50,8 @@ public class BasicSurfer extends AdvancedRobot {
 
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
+
+        setColors(Color.red, Color.red, Color.darkGray, Color.white, Color.darkGray);
 
         do {
             // basic mini-radar code
@@ -97,7 +100,7 @@ public class BasicSurfer extends AdvancedRobot {
 
         our_last_velocity = getVelocity();
         // gun code would go here...
-        
+
         my_gun.onScannedRobot(e, this);
     }
 
@@ -276,10 +279,39 @@ public class BasicSurfer extends AdvancedRobot {
 
         double total_danger = 0;
         for (PointEntryComparator pec : closest_points) {
-            //Take the distance from the past entry and the current predicted guess factor
-            //Then divide by the similarity to the past entry's situation.
-            total_danger += pec.dist_squared/Math.abs(factor - pec.dataPoint.dataObject[0]);
+            if (pec.dist_squared < Double.MAX_VALUE && pec.dataPoint != null) {
+                //Take the distance from the past entry and the current predicted guess factor
+                //Then divide by the similarity to the past entry's situation.
+                total_danger += pec.dist_squared / (Math.abs(factor - pec.dataPoint.dataObject[0]) + 0.1);
 //            System.out.println("Movement: Past hit at GF: "+pec.dataPoint.dataObject[0]);
+            }
+        }
+
+        return total_danger;
+
+//        return _surfStats[index];
+    }
+
+    //Assume we go clockwise/counterclockwise at max
+    public double checkDanger(EnemyWave surfWave, double gf) {
+
+        double[] coordinates = new double[NUM_DIMENSIONS_FOR_KDTREE];
+        coordinates[0] = surfWave.our_distance;
+        coordinates[1] = surfWave.our_velocity;
+        coordinates[2] = surfWave.our_acceleration;
+
+        double[] data = new double[0];
+        PointEntry p = new PointEntry(coordinates, data);
+        PriorityQueue<PointEntryComparator> closest_points = my_kdtree.getKNearestPoints(p, 30);
+
+        double total_danger = 0;
+        for (PointEntryComparator pec : closest_points) {
+            if (pec.dist_squared < Double.MAX_VALUE && pec.dataPoint != null) {
+                //Take the distance from the past entry and the current predicted guess factor
+                //Then divide by the similarity to the past entry's situation.
+                total_danger += pec.dist_squared / (Math.abs(gf - pec.dataPoint.dataObject[0]) + 0.1);
+//            System.out.println("Movement: Past hit at GF: "+pec.dataPoint.dataObject[0]);
+            }
         }
 
         return total_danger;
@@ -380,8 +412,11 @@ public class BasicSurfer extends AdvancedRobot {
     }
 
     public void onPaint(java.awt.Graphics2D g) {
-        g.setColor(java.awt.Color.red);
+
+        System.out.println("Painting waves");
+        System.out.println("Num of enemy waves: " + _enemyWaves.size());
         for (int i = 0; i < _enemyWaves.size(); i++) {
+            g.setColor(java.awt.Color.red);
             EnemyWave w = (EnemyWave) (_enemyWaves.get(i));
             Point2D.Double center = w.fireLocation;
 
@@ -393,11 +428,41 @@ public class BasicSurfer extends AdvancedRobot {
             int radius = (int) w.distanceTraveled;
 
             //Point2D.Double center = w.fireLocation;
-            if (radius - 40 < center.distance(_myLocation)) {
-                g.drawOval((int) (center.x - radius), (int) (center.y - radius), radius * 2, radius * 2);
+//            if (radius - 40 < center.distance(_myLocation)) {
+            g.drawOval((int) (center.x - radius), (int) (center.y - radius), radius * 2, radius * 2);
+//            }
+
+            g.drawLine((int) center.x, (int) center.y, (int) (center.x + radius * Math.sin(w.directAngle)), (int) (center.y + radius * Math.cos(w.directAngle)));
+
+            if (i < 2) {
+                float[] dangers = new float[47];
+                float max_danger = 0;
+                double start_angle = w.directAngle - w.direction * maxEscapeAngle(w.bulletVelocity);
+                for (int j = 0; j < 47; j++) {
+
+                    double angle = Utils.normalAbsoluteAngle(start_angle + 2 * j * w.direction * maxEscapeAngle(w.bulletVelocity) / 47);
+                    float danger = (float) checkDanger(w, -1 + j / 23.0);
+                    dangers[j] = danger;
+
+                    if (danger > max_danger) {
+                        max_danger = danger;
+                    }
+                }
+                for (int j = 0; j < 47; j++) {
+                    double angle = Utils.normalAbsoluteAngle(start_angle + 2 * j * w.direction * maxEscapeAngle(w.bulletVelocity) / 47);
+
+                    Point2D.Double p = new Point2D.Double();
+                    p.x = center.x + (radius - w.bulletVelocity) * Math.sin(angle);
+                    p.y = center.y + (radius - w.bulletVelocity) * Math.cos(angle);
+
+                    java.awt.Color c = new java.awt.Color(Math.min(1, Math.max(0, dangers[j] / max_danger)), 1 - Math.min(1, Math.max(0, dangers[j] / max_danger)), 0.3f);
+                    g.setColor(c);
+                    g.fillOval((int) p.x - 2, (int) p.y - 2, 4, 4);
+                }
+
             }
         }
-        my_gun.onPaint(g);
+//        my_gun.onPaint(g);
     }
 
 }

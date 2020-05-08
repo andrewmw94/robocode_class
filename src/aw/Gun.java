@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package wiki;
+package aw;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -11,12 +11,12 @@ import kd_tree.Kd_tree;
 import kd_tree.PointEntry;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
-import static wiki.BasicSurfer._oppEnergy;
-import static wiki.BasicSurfer.bulletVelocity;
-import static wiki.BasicSurfer.project;
+import static aw.BasicSurfer._oppEnergy;
+import static aw.BasicSurfer.bulletVelocity;
+import static aw.BasicSurfer.project;
 
 import robocode.*;
-import static wiki.BasicSurfer.NUM_DIMENSIONS_FOR_KDTREE;
+import static aw.BasicSurfer.NUM_DIMENSIONS_FOR_KDTREE;
 
 /**
  *
@@ -42,7 +42,7 @@ public class Gun {
     }
 
     //distance, velocity, acceleration
-    public Kd_tree my_kdtree = new Kd_tree(NUM_DIMENSIONS_FOR_KDTREE);
+    public static Kd_tree my_kdtree = new Kd_tree(NUM_DIMENSIONS_FOR_KDTREE);
 
     ArrayList<Wave> waves = new ArrayList<Wave>();
 
@@ -71,7 +71,7 @@ public class Gun {
         waves.add(w);
         last_wave_added = w;
 
-        if (me.getGunHeat() <= me.getGunCoolingRate()) {
+        if (me.getEnergy() > 3.0 && me.getGunHeat() <= 3*me.getGunCoolingRate()) {
 //            System.out.println("Gun: Turn gun right: " + Utils.normalRelativeAngle(aim(_enemyLocation) - me.getGunHeadingRadians() + me.getHeadingRadians()));
             me.setTurnGunRightRadians(Utils.normalRelativeAngle(aim() - me.getGunHeadingRadians()));
             me.setFire(2.0);
@@ -112,6 +112,7 @@ public class Gun {
     double aim() {
 
         if (last_wave_added == null) {
+            System.out.println("Last Wave added is null.");
             return 0.0;
         }
 
@@ -125,12 +126,16 @@ public class Gun {
         PointEntry nearest_point = my_kdtree.getNearestPoint(p);
 
         if (nearest_point == null) {
+            System.out.println("Nearest point is null.");
+
             return last_wave_added.directAngle;
         }
         
 //        return last_wave_added.directAngle;
 
         double gf = nearest_point.dataObject[0];
+        
+        System.out.println("Aiming at GF: "+ gf);
 
         return convertGFToAbsBearing(gf, last_wave_added);
     }
@@ -171,21 +176,21 @@ public class Gun {
     }
 
     public void onPaint(java.awt.Graphics2D g) {
-        g.setColor(java.awt.Color.green);
-        System.out.println("Gun: " + waves.size());
-        for (Wave w : waves) {
-            Point2D.Double center = w.fireLocation;
-
-            //int radius = (int)(w.distanceTraveled + w.bulletVelocity);
-            //hack to make waves line up visually, due to execution sequence in robocode engine
-            //use this only if you advance waves in the event handlers (eg. in onScannedRobot())
-            //NB! above hack is now only necessary for robocode versions before 1.4.2
-            //otherwise use: 
-            int radius = (int) w.distanceTraveled;
-
-            g.drawOval((int) (center.x - radius), (int) (center.y - radius), radius * 2, radius * 2);
-
-        }
+//        g.setColor(java.awt.Color.green);
+//        System.out.println("Gun: " + waves.size());
+//        for (Wave w : waves) {
+//            Point2D.Double center = w.fireLocation;
+//
+//            //int radius = (int)(w.distanceTraveled + w.bulletVelocity);
+//            //hack to make waves line up visually, due to execution sequence in robocode engine
+//            //use this only if you advance waves in the event handlers (eg. in onScannedRobot())
+//            //NB! above hack is now only necessary for robocode versions before 1.4.2
+//            //otherwise use: 
+//            int radius = (int) w.distanceTraveled;
+//
+//            g.drawOval((int) (center.x - radius), (int) (center.y - radius), radius * 2, radius * 2);
+//
+//        }
     }
 
 }
